@@ -1,0 +1,484 @@
+---
+title: "Multi Armed Bandit"
+author: "Faathir Chikal Asyuraa & Tansa Qurrota A'yuna"
+date: "1/28/2020"
+output: 
+  html_document:
+    toc_depth: 3  # upto three depths of headings (specified by #, ## and ###)
+    toc: true
+    toc_float: true
+    number_sections: true  ## if you want number sections at each table header
+    theme: lumen  # many options for theme, this one is my favorite.
+    highlight: tango  # specifies the syntax highlighting style
+    df_print: paged
+    fig_width: 10
+    fig_height: 6
+    fig_caption: True
+    code_folding: "hide" # Hiding codes
+---
+# Pengenalan <em>Multi-Armed Bandit</em>
+
+## Permasalahan yang diberikan
+
+<center>![Ilustrasi Multi Armed Bandit](Skripsi/Bandit_01.png)</center>
+
+Permasalahan <em>Multi-Armed Bandit</em> berfokus pada bagaimana kita dapat memaksimalkan keuntungan dan menemukan pilihan yang memberikan kita keuntungan paling besar dari sekumpulan pilihan yang ada.
+
+Pada permasalahan <em>Multi-Armed Bandit</em> ini, seberapa besar keuntungan yang dihasilkan dari melakukan sebuah pilihan tidak diketahui secara pasti. Ibarat bermain judi pada slot machine, kita tidak akan tau seberapa besar peluang kita mendapatkan keuntungan.
+
+## Eksploitasi vs Eksplorasi
+
+<center>![Eksploitasi vs Eksplorasi pada konteks Slot Machine](Skripsi/Bandit_03.png)</center>
+
+Jika kita hanya terus mencoba pilihan yang kelihatannya sudah baik (eksploitasi), kita mungkin akan melewatkan opsi opsi baru yang mungkin ternyata lebih menguntungkan.
+
+Sedangkan, jika kita hanya terus mencoba coba pilihan yang ada (eksplorasi), kita dapat saja membuang buang sumber daya yang seharusnya dapat di alokasikan pada pilihan yang lebih baik.
+
+<center>![Eksploitasi vs Eksplorasi pada konteks pemilihan tempat makan](Skripsi/Bandit_02.png)</center>
+
+Dilema yang diberikan adalah, bagaimana caranya kita menyeimbangkan antara eksploitasi dengan eksplorasi tersebut.
+
+<center>![Menyeimbangkan Eksploitasi dan Eksplorasi](Skripsi/Bandit_04.png)</center>
+
+## Contoh Aplikasi Multi-Armed Bandit
+
+* Ketika ingin mencari tempat makan, lebih baik pergi ke restoran langganan atau coba restoran baru?
+* Dalam website berita, lebih baik menempatkan berita populer atau berita yang baru pada halaman depan?
+* Dalam pengembangan website, lebih baik mencoba citravisual yang baru atau tetap menggunakan citravisual yang sudah teruji
+* Dalam mengiklankan produk, tipe iklan yang seperti apa yang akan menghasilkan calon pembeli/pengguna yang paling banyak?
+* Dalam uji klinis, lebih baik mencoba obat yang sudah lama teruji atau bereksperimen dengan obat obat baru?
+
+## Istilah dasar yang digunakan
+
+* [Reward] Seberapa besar <em>keuntungan</em> yang dihasilkan
+* [Arm] Pilihan yang ada
+* [Bandit] Himpunan dari pilihan-pilihan yang ada
+* [Play / Trial] Siklus penarikan <em>arm</em> dan melihat <reward> yang dihasilkan
+* [Regret] Berapa besar perbedaan reward yang didapat andaikan saja kita memilih <em>arm</em> yang optimal
+* [Horizon] Berapa banyak <em>trial</em> yang dapat dilakukan
+* [Exploration] Mencoba <em>arm</em> yang baru
+* [Exploitation] Mencoba <em>arm</em> yang <strong>diketahui</strong> memiliki <em>reward</em> yang tinggi
+* [Policy] Kebijakan pemilihan <em>arm</em> pada setiap <em>trial</em>-nya
+
+## Famili <em>Multi-Armed Bandit</em>
+
+<center>![Struktur Multi-Armed Bandit](Skripsi/Bandit_05.png)</center>
+
+## Cara Kerja <em>Multi-Armed Bandit</em>
+
+<center>![Cara Kerja Multi-Armed Bandit](Skripsi/Bandit_06.png)</center>
+
+## Catatan mengenai <em>Multi-Armed Bandit</em>
+
+<em>Multi-Armed Bandit</em> berada pada cabang <em>Reinforcement Learning</em> pada ranah <em>Data Science</em>. <em>Multi-Armed Bandit</em> tidak menerima input data seperti model <em>Supervised Learning</em> dan <em>Unsupervised Learning</em> pada umumnya, melainkan Multi-Armed Bandit meminta data / mengambil keputusan apa yang seharusnya diambil, informasi harus dikumpulkan secara bertahap, dan pengambilan keputusan itu pun akan berubah ubah secara dinamis seiring penelitian berjalan
+
+## <em>Library</em> yang digunakan
+```{r}
+library(contextual)
+```
+
+# Simulasi Bernoulli Bandit
+
+## Penjelasan Bernoulli Bandit
+Jenis Bandit dapat menentukan bagaimana reward diberikan, beberapa jenis bandit dapat dilihat pada famili <em>Multi-Armed Bandit</em>.
+
+Pada Simulasi pertama, akan ditampilkan Bernoulli Bandit, dimana reward yang diberikan berdistribusi Bernoulli, yaitu reward berupa 0 atau 1, dengan probabilitas mendapatkan reward 1 adalah sebesar &Theta;
+
+## Inisialisasi Bernoulli Bandit
+Akan dibuat Bernoulli Bandit dengan menspesifikasikan probabilitas <em>reward</em> pada tiap <em>arm</em>, Serta menentukan seberapa banyak penarikan <em>arm</em> yang tersedia.
+
+Pada simulasi ini akan dibuat 3 <em>arm</em>, dengan distribusi masing masing <em>arm</em> nya adalah bernoulli dengan peluang mendapatkan reward adalah:
+
+* [<em>Arm</em> 1] 75%
+* [<em>Arm</em> 2] 50%
+* [<em>Arm</em> 3] 25%
+
+Akan dilakukan 200 penarikan <em>arm</em>, serta simulasi ini akan diulang 100 kali untuk meminimalisir efek random dalam melihat performa simulasi.
+```{r}
+bernoulli_bandit <- ContextualBernoulliBandit$new(matrix(c(0.75, 0.5, 0.25), 1))
+simulations = 100
+horizon = 200
+```
+
+## Menentukan <em>Policy</em>
+<em>Policy</em> adalah kebijakan dalam pemilihan <em>arm</em>, akan dicoba beberapa policy yang cukup umum.
+
+### <em>Epsilon First</em> (<em>A/B Testing</em>)
+Pada <em>policy</em> ini, akan dilakukan eksplorasi dulu pada beberapa periode, yaitu penarikan <em>arm</em> akan dilakukan secara acak selama sekian periode, lalu setelah periode eksplorasi selesai, akan dilanjutkan dengan periode eksploitasi dengan memilih <em>arm</em> yang dianggap memiliki probabilitas <em>reward</em> yang paling tinggi.
+
+Pada simulasi ini akan dilakukan periode eksplorasi sebesar 60% dari total percobaan, yaitu 120 percobaan akan di alokasikan untuk eksplorasi, dan 80 percobaan akan dialokasikan untuk eksploitasi
+```{r}
+ef_policy <- EpsilonFirstPolicy$new(epsilon = 0.6,
+                                    N = horizon) 
+```
+
+### <em>Epsilon Greedy</em>
+Pada <em>policy</em> ini, eksplorasi akan dilakukan dengan probabilitas &epsilon; dan eksploitasi akan dilakukan dengan probailitas 1 - &epsilon;, besarnya &epsilon; akan mempengaruhi seberapa sering kita melakukan eksplorasi
+
+Pada simulasi ini, akan ditentukan &epsilon; = 10%
+```{r}
+eg_policy <- EpsilonGreedyPolicy$new(0.1)
+```
+
+### <em>SoftMax</em>
+Pada <em>policy</em> ini, probabilitas pemilihan <em>arm</em> akan proporsional dengan  <em>cumulative reward</em> yang didapat. <em>Softmax Policy</em> memiliki <em>temperature</em> parameter &tau;, yang menentukan seberapa banyak <em>arm</em> yang dapat kita eksplor, ketika &tau; bernilai kecil, <em>arm</em> yang memiliki reward yang lebih tinggi akan lebih cenderung dipilih, sedangkan jika &tau; bernilai besar, semua <em>arm</em> memiliki kesempatan yang sama untuk di eksplor.
+
+```{r}
+softmax_policy <- SoftmaxPolicy$new(tau = 0.1)
+```
+
+### <em>Upper Confidence Bound</em>
+Pada <em>policy</em> ini, probabilitas pemilihan <em>arm</em> tidak hanya proporsional dengan <em>cumulative reward</em> yang dihasilkan, namun juga berdasarkan seberapa sering kita menarik menarik suatu <em>arm</em>. Algoritma ini menerapkan konsep optimis karena arm yang jarang ditarik akan diberi insentif lebih untuk dicoba di eksplor karena dianggap informasi yang dikumpulkan belum terlalu banyak.
+
+```{r}
+ucb_policy <- UCB1Policy$new()
+```
+
+### Thompson Sampling
+Karena bandit yang digunakan adalah Bernoulli, dapat ditentukan prior pada mean dari reward pada setiap <em>arm</em>, Thompson Sampling menggunakan model beta-binomial, dengan parameter yang digunakan adalah alfa dan beta dalam mengatur distribusi beta.
+
+Pada simulasi ini akan digunakan prior uniform (beta(1,1)).
+```{r}
+ts_policy <- ThompsonSamplingPolicy$new(alpha = 1,
+                                        beta = 1)
+```
+
+## Menjalankan simulasi
+
+### Mengumpulkan <em>policy-policy</em> yang dibuat pada satu <em>agent</em>
+```{r}
+agents <- list(Agent$new(ef_policy, 
+                         bernoulli_bandit),
+               Agent$new(eg_policy, 
+                         bernoulli_bandit),
+               Agent$new(softmax_policy, 
+                         bernoulli_bandit),
+               Agent$new(ucb_policy, 
+                         bernoulli_bandit),
+               Agent$new(ts_policy, 
+                         bernoulli_bandit))
+```
+
+### Mengesekusi simulasi
+```{r message=FALSE}
+simulator <- Simulator$new(agents,
+                           horizon,
+                           simulations,
+                           do_parallel = TRUE)
+history <- simulator$run()
+```
+
+# Hasil Simulasi
+
+## Mendapatkan penamaan agent
+<em>Agent</em> yang digunakan akan mengacu berdasarkan nama fungsi <em>policy</em> yang digunakan, untuk mengetahui penamaan yang diberikan, dapat dilakukan
+```{r}
+history$get_agent_list()
+```
+## <em>History</em> pemilihan <em>arm</em>
+Berikut akan disajikan <em>arm</em> mana yang dipilih pada setiap <em>trial</em> yang ada, perlu diingat bahwa peluang mendapatkan reward untuk tiap arm adalah
+
+* [<em>Arm</em> 1] 75%
+* [<em>Arm</em> 2] 50%
+* [<em>Arm</em> 3] 25%
+
+### <em>Epsilon First</em> (<em>A/B Testing</em>)
+```{r}
+plot(history, 
+     type = "arms",
+     limit_agents = "EpsilonFirst")
+```
+
+### <em>Epsilon Greedy</em>
+```{r}
+plot(history,
+     type = "arms",
+     limit_agents = "EpsilonGreedy")
+```
+
+### <em>Softmax</em>
+```{r}
+plot(history,
+     type = "arms",
+     limit_agents = "Softmax")
+```
+
+### <em>Upper Confidence Bounds</em>
+```{r}
+plot(history,
+     type = "arms",
+     limit_agents = "UCB1")
+```
+
+### Thompson Sampling
+```{r}
+plot(history,
+     type = "arms",
+     limit_agents = "ThompsonSampling")
+```
+
+## Average Reward
+
+### <em>Epsilon First</em> (<em>A/B Testing</em>)
+```{r}
+plot(history, 
+     type = "average",
+     regret = FALSE,
+     disp = "ci",
+     ylim = c(0,1),
+     limit_agents = "EpsilonFirst")
+```
+
+### <em>Epsilon Greedy</em>
+```{r}
+plot(history,
+     type = "average",
+     regret = FALSE,
+     disp = "ci",
+     ylim = c(0,1),
+     limit_agents = "EpsilonGreedy")
+```
+
+### <em>Softmax</em>
+```{r}
+plot(history,
+     type = "average",
+     regret = FALSE,
+     disp = "ci",
+     ylim = c(0,1),
+     type = "arms",
+     limit_agents = "Softmax")
+```
+
+### <em>Upper Confidence Bounds</em>
+```{r}
+plot(history,
+     type = "average",
+     regret = FALSE,
+     disp = "ci",
+     ylim = c(0,1),
+     limit_agents = "UCB1")
+```
+
+### Thompson Sampling
+```{r}
+plot(history,
+     type = "average",
+     regret = FALSE,
+     disp = "ci",
+     ylim = c(0,1),
+     limit_agents = "ThompsonSampling")
+```
+
+### <em>Smooth Plot of Average Reward of All Agent</em>
+```{r}
+plot(history, 
+     type = "average", 
+     regret = FALSE, 
+     smooth = TRUE,
+     ylim = c(0,1))
+```
+
+## Cumulative Reward
+
+### <em>Epsilon First</em> (<em>A/B Testing</em>)
+```{r}
+plot(history, 
+     type = "cumulative",
+     regret = FALSE,
+     disp = "ci",
+     ylim = c(0,150),
+     limit_agents = "EpsilonFirst")
+```
+
+### <em>Epsilon Greedy</em>
+```{r}
+plot(history,
+     type = "cumulative",
+     regret = FALSE,
+     disp = "ci",
+     ylim = c(0,150),
+     limit_agents = "EpsilonGreedy")
+```
+
+### <em>Softmax</em>
+```{r}
+plot(history,
+     type = "cumulative",
+     regret = FALSE,
+     disp = "ci",
+     ylim = c(0,150),
+     limit_agents = "Softmax")
+```
+
+### <em>Upper Confidence Bounds</em>
+```{r}
+plot(history,
+     type = "cumulative",
+     regret = FALSE,
+     disp = "ci",
+     ylim = c(0,150),
+     limit_agents = "UCB1")
+```
+
+### Thompson Sampling
+```{r}
+plot(history,
+     type = "cumulative",
+     regret = FALSE,
+     disp = "ci",
+     ylim = c(0,150),
+     limit_agents = "ThompsonSampling")
+```
+
+### <em>Smooth Plot of Cumulative Reward of All Agent</em>
+```{r}
+plot(history, 
+     type = "cumulative", 
+     regret = FALSE, 
+     smooth = TRUE,
+     ylim = c(0,150))
+```
+
+## Average Regret
+
+### <em>Epsilon First</em> (<em>A/B Testing</em>)
+```{r}
+plot(history, 
+     type = "average",
+     disp = "ci",
+     ylim = c(0,1),
+     limit_agents = "EpsilonFirst")
+```
+
+### <em>Epsilon Greedy</em>
+```{r}
+plot(history,
+     type = "average",
+     disp = "ci",
+     ylim = c(0,1),
+     limit_agents = "EpsilonGreedy")
+```
+
+### <em>Softmax</em>
+```{r}
+plot(history,
+     type = "average",
+     disp = "ci",
+     ylim = c(0,1),
+     limit_agents = "Softmax")
+```
+
+### <em>Upper Confidence Bounds</em>
+```{r}
+plot(history,
+     type = "average",
+     disp = "ci",
+     ylim = c(0,1),
+     limit_agents = "UCB1")
+```
+
+### Thompson Sampling
+```{r}
+plot(history,
+     type = "average",
+     disp = "ci",
+     ylim = c(0,1),
+     limit_agents = "ThompsonSampling")
+```
+
+### <em>Smooth Plot of Cumulative Reward of All Agent</em>
+```{r}
+plot(history, 
+     type = "average", 
+     smooth = TRUE,
+     ylim = c(0,1))
+```
+
+## Cumulative Regret
+
+### <em>Epsilon First</em> (<em>A/B Testing</em>)
+```{r}
+plot(history, 
+     type = "cumulative",
+     disp = "ci",
+     ylim = c(0,35),
+     limit_agents = "EpsilonFirst")
+```
+
+### <em>Epsilon Greedy</em>
+```{r}
+plot(history,
+     type = "cumulative",
+     disp = "ci",
+     ylim = c(0,35),
+     limit_agents = "EpsilonGreedy")
+```
+
+### <em>Softmax</em>
+```{r}
+plot(history,
+     type = "cumulative",
+     disp = "ci",
+     ylim = c(0,35),
+     limit_agents = "Softmax")
+```
+
+### <em>Upper Confidence Bounds</em>
+```{r}
+plot(history,
+     type = "cumulative",
+     disp = "ci",
+     ylim = c(0,35),
+     limit_agents = "UCB1")
+```
+
+### Thompson Sampling
+```{r}
+plot(history,
+     type = "cumulative",
+     disp = "ci",
+     ylim = c(0,35),
+     limit_agents = "ThompsonSampling")
+```
+
+### <em>Smooth Plot of Cumulative regret of All Agent</em>
+```{r}
+plot(history, 
+     type = "cumulative", 
+     smooth = TRUE,
+     ylim = c(0,35))
+```
+
+# Catatan dan Rekomendasi
+
+## Komentar mengenai policy
+<em>Policy policy</em> yang digunakan akan memiliki performa yang berbeda-beda tergantung jenis reward yang disajikan, bagaimana rentang waktu yang disediakan, ataupun seberapa berbeda reward masing masing <em>arm</em> (apakah hanya beda tipis? atau beda jauh?)
+
+## Filosofi <em>Multi-Armed Bandit</em> dalam kehidupan nyata
+
+Diambil dari buku "Bandit Problems on Website Optimization, (John Wyles White 2012)"
+
+* We only find out about the reward that was given out by the arm we actually pulled. Whichever arm we pull, we miss out on information about the other arms that we didn’t pull. Just like in real life, you only learn about the path you took and not the paths you could have taken.
+* Not only do we get only partial feedback about the wisdom of our past decisions, we’re literally falling behind every time we don’t make a good decision: • Every time we experiment with an arm that isn’t the best arm, we lose reward because we could, at least in principle, have pulled on a better arm. 
+* In the real world, you always have to trade off between gathering data and acting on that data. Pure experimentation in the form of exploration is always a shortterm loss, but pure profit-making in the form of exploitation is always blind to the long-term benefits of curiosity and openmindedness.
+* Everybody’s gotta grow up sometime You should make sure that you explore less over time. No matter what you’re doing, it’s important that you don’t spend your whole life trying out every crazy idea that comes into your head.
+
+## Beberapa ekstensi yang dapat digali
+Problem <em>Multi-Armed Bandit</em> dapat di ekstensikan (sesuai famili yang diberikan pada awal notebook) untuk menyesuaikan problem problem yang ada, baik itu dari segi
+
+* [Reward] Dapat dicoba distribusi reward lain, baik itu gaussian, poisson, ataupun bentuk rewardnya
+* [Context] </em>Reward</em> yang diberikan akan bergantung terhadap siapa yang menarik <em>arm</em>, contohnya dalam konteks medis, obat merk tertentu mungkin akan lebih efektif pada pasien usia tua dibanding usia muda
+* [Time-Varying] Distribusi <em>reward</em> tidak mesti stasioner, dapat saja berubah seiring percobaan berjalan, contohnya dalam konteks modifikasi website, citravisual tertentu mungkin akan lebih efektif pada saat menjelang natal, namun setelah itu, citravisual lain akan lebih cocok saat <em>event</em> lainnya
+* [Kecepatan Feedback] <em>reward</em> yang diberikan pun tidak mesti diberikan pada saat <em>arm</em> ditarik (instant), dapat saja terdapat delay dalam penerimaan reward
+* [Ensemble] Pemilihan <em>arm</em> didasarkan oleh agregat dari banyak <em>policy</em>, setiap <em>policy</em> dapat diberi bobot yang dapat di-<em>update</em> setiap <em>trial</em>-nya.
+* [Multi-Player] Jika ada banyak pemain, jika ada skenario ketika ada lebih dari satu pemain menarik <em>arm</em> yang sama, hanya ada satu pemain yang mendapatkan <em>reward</em> atau bahkan semua pemain yang memilih <em>arm</em> yang sama tidak mendapatkan <em>reward</em> sama sekali. 
+* [Cost & Budget] Setiap <em>arm</em> dapat memiliki biaya masing masing yang mungkin berbeda untuk setiap kali penarikannya, sehingga perlu untuk menyusun strategi untuk menyesuaikan penarikan <em>arm</em> sesuai <em>budget</em> yang ada.
+* [Dependent Arm] <em>Reward</em> yang diberikan dapat juga berbeda tergantung <em>sequence</em> penarikan yang dilakukan.
+
+# Referensi
+
+* Bandit Algorithms for Website Optimization (John Myles White 2012)
+* contextual: Evaluating Contextual Multi-Armed Bandit
+Problems in R (Robin van Emden, Maurits Kaptein 2020)
+* contextual package documentation in R (Robin van Emden 2019)
